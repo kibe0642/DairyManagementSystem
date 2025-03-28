@@ -12,4 +12,5 @@ func RegisterAuthRoutes(app *fiber.App, authController *controllers.AuthControll
 	routes := app.Group("/api/auth")
 	routes.Post("/login", authController.Login)
 	routes.Post("/create-user", middleware.AuthMiddleware("admin"), authController.CreateUser) // ✅ Fixed: Use authController instead of controller
+	routes.Get("/me", middleware.AuthMiddleware("user"), authController.GetCurrentUser)
 }

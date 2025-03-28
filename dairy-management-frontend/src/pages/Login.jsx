@@ -1,14 +1,16 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { useAuth } from "../hooks/useAuth"; // ✅ Import auth context
 
-const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8080/api"; // Use env variable
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8081/api"; // Use env variable
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
+  const { setUser, checkAuth } = useAuth(); // ✅ Use AuthProvider
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -23,34 +25,33 @@ const Login = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
-
-    if (!email || !password) {
-      setError("Email and password are required");
-      return;
-    }
-
+  
     try {
-      const response = await axios.post(
-        `${API_URL}/auth/login`,
-        { email, password },
-        { withCredentials: true } // Ensures JWT cookies are handled properly
-      );
-
+      const response = await axios.post(`${API_URL}/auth/login`, { email, password }, { withCredentials: true });
+  
+      console.log("Login Response:", response.data); // ✅ Check if token is present
+  
       if (response.status === 200) {
-        // Store token & role in localStorage for session management
-        localStorage.setItem("userToken", response.data.token);
-        localStorage.setItem("userRole", response.data.role);
-
-        // Remember Me functionality
-        if (rememberMe) {
-          localStorage.setItem("rememberedEmail", email);
-        } else {
-          localStorage.removeItem("rememberedEmail");
+        const { token, role, user } = response.data;
+  
+        console.log("Received Token:", token); // ✅ Print token
+  
+        if (!token) {
+          console.error("No token received. Login failed.");
+          setError("Authentication failed. No token received.");
+          return;
         }
-
-        navigate("/dashboard"); // Redirect to dashboard after successful login
+  
+        localStorage.setItem("userToken", token); // ✅ Store token
+        localStorage.setItem("userRole", role);
+        setUser(user);
+  
+        console.log("Stored Token:", localStorage.getItem("userToken")); // ✅ Check if stored
+  
+        navigate(role === "admin" ? "/admin/dashboard" : "/dashboard");
       }
     } catch (err) {
+      console.error("Login Error:", err.response?.data || err);
       setError(err.response?.data?.error || "Invalid credentials");
     }
   };

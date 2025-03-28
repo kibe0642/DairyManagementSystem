@@ -60,3 +60,19 @@ func (ac *AuthController) CreateUser(c *fiber.Ctx) error {
 
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"message": "User created successfully"})
 }
+func (ac *AuthController) GetCurrentUser(ctx *fiber.Ctx) error {
+	// Extract user email from context (set by middleware)
+	userEmail, ok := ctx.Locals("userEmail").(string) // Ensure it's a string
+	if !ok || userEmail == "" {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+	}
+
+	// Fetch user details from the repository via UseCase
+	user, err := ac.UserUC.GetUserByEmail(userEmail) // ✅ Fetch user by email
+	if err != nil {
+		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "User not found"})
+	}
+
+	// Return user data
+	return ctx.JSON(user)
+}
